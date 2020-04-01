@@ -1,0 +1,15 @@
+# Configuration file for local debug purpose
+server:
+  mode: debug
+  log:
+    level: debug
+  port: 8443
+  tls:
+    cert: /run/secrets/sts-annotator/server.crt
+    key: /run/secrets/sts-annotator/server.key
+
+k8s:
+  url: https://192.168.99.100:8443
+  token: /run/secrets/sts-annotator/token
+  tls:
+    caCert: /run/secrets/sts-annotator/ca.crt

@@ -1,0 +1,38 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: "api-somethings-v1"
+  namespace: default
+  annotations:
+    test: "TRUE"
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: "api-somethings-v1"
+  serviceName: "api-somethings-v1"
+  updateStrategy:
+    type: RollingUpdate
+  template:
+    metadata:
+      labels:
+        app: "api-somethings-v1"
+    spec:
+      containers:
+        - name: "api-somethings-v1"
+          image: "docker.io/mkikyotani/api-test:1.0.0"
+          imagePullPolicy: Always
+          ports:
+            - name: api
+              containerPort: 8080
+          env:
+            - name: POD_INDEX
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.annotations['sts-annotator/pod-index']
+            - name: POD_REPLICAS
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.annotations['sts-annotator/pod-replicas']
+      dnsPolicy: ClusterFirst
+      restartPolicy: Always
