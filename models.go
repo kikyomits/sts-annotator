@@ -83,6 +83,12 @@ type Statefulset struct {
 	} `json:"spec"`
 }
 
+// The paths in json tag must be equal to paths defined in Constant
+type Annotations struct {
+	PodIndex    string `json:"sts-annotator/pod-index"`
+	PodReplicas string `json:"sts-annotator/pod-replicas"`
+}
+
 func newPatch() (p Patch) {
 	p = Patch{}
 	p.Op = "add"
@@ -104,9 +110,10 @@ func newConstant() (c Constant) {
 	c = Constant{}
 	c.Healthz = "/healthz"
 	c.V1 = "/v1"
+	// The paths must be equal to paths defined in Annotations json tag.
 	c.Annotator = "/sts/pod/annotation"
 	c.AnnotationsPath = "/metadata/annotations"
 	c.PodIndexPath = c.AnnotationsPath + "/sts-annotator~1pod-index"
-	c.PodReplicasPath = c.AnnotationsPath + "/metadata/annotations/sts-annotator~1pod-replicas"
+	c.PodReplicasPath = c.AnnotationsPath + "/sts-annotator~1pod-replicas"
 	return
 }

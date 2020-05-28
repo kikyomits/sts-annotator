@@ -60,19 +60,22 @@ func annotateStsPod(c *gin.Context) {
 		c.AbortWithStatusJSON(http.StatusInternalServerError, createAllowResponse(uid))
 		return
 	}
+	podReplicas := strconv.Itoa(sts.Spec.Replicas)
 
 	var patches []Patch
 	constant := newConstant()
+
 	// if the pod doesn't have any annotation field, must create the field `annotations` first.
 	if obj.Metadata.Annotations == nil {
-		empty := make(map[string]string)
-		patches = append(patches, createPatch(constant.AnnotationsPath, empty))
+		annotations := Annotations{}
+		annotations.PodReplicas = podReplicas
+		annotations.PodIndex = podIndex
+		patches = append(patches, createPatch(constant.AnnotationsPath, annotations))
+	} else {
+		patches = append(patches, createPatch(constant.PodReplicasPath, podReplicas))
+		patches = append(patches, createPatch(constant.PodIndexPath, podIndex))
 	}
-
-	podReplicas := strconv.Itoa(sts.Spec.Replicas)
-	patches = append(patches, createPatch(constant.PodReplicasPath, podReplicas))
-	patches = append(patches, createPatch(constant.PodIndexPath, podIndex))
-
+	
 	c.AbortWithStatusJSON(http.StatusOK, createPatchResponse(uid, patches))
 	return
 }

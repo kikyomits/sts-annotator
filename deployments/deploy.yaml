@@ -36,7 +36,7 @@ spec:
               weight: 100
       containers:
         - name: sts-annotator
-          image: "docker.io/mkikyotani/sts-annotator:1"
+          image: "docker.io/mkikyotani/sts-annotator:2"
           imagePullPolicy: Always
           ports:
             - name: https

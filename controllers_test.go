@@ -89,23 +89,32 @@ func assertFailed(t *testing.T, expectCode int, actualCode int, actual Admission
 	assert.Equal(t, "", actual.Response.PatchType)
 }
 
-func assertPatches(t *testing.T, expect AdmissionRequest, actual AdmissionResponse) {
+func assertPatches(
+	t *testing.T,
+	expect AdmissionRequest,
+	actual AdmissionResponse) {
 	assert.Equal(t, "jsonpatch", strings.ToLower(actual.Response.PatchType))
 
 	patches := unmarshalPatches(actual.Response.Patch)
+
+	podNameSplit := strings.Split(expect.Request.Object.Metadata.Name, "-")
+	podIndex := podNameSplit[len(podNameSplit)-1]
+	podReplicas := "3" // TODO: use K8s mock api server response to verify the pod replicas
 
 	c := newConstant()
 	for i := range patches {
 		patch := patches[i]
 		if patch.Path == c.AnnotationsPath {
-			assert.Equal(t, make(map[string]interface{}), patch.Value)
+			patchMap := patch.Value.(map[string]interface{})
+			actualPodIndex := patchMap["sts-annotator/pod-index"].(string)
+			actualPodReplicas := patchMap["sts-annotator/pod-replicas"].(string)
+			assert.Equal(t, podIndex, actualPodIndex)
+			assert.Equal(t, podReplicas, actualPodReplicas)
 		} else if patch.Path == c.PodIndexPath {
-			podNameSplit := strings.Split(expect.Request.Object.Metadata.Name, "-")
-			podIndex := podNameSplit[len(podNameSplit)-1]
 			assert.Equal(t, podIndex, patch.Value)
 		} else if patch.Path == c.PodReplicasPath {
 			// TODO: use K8s mock api server response to verify the pod replicas
-			assert.NotEqual(t, nil, patch.Value)
+			assert.Equal(t, podReplicas, patch.Value)
 		} else {
 			t.Error(
 				fmt.Sprintf("JsonPath must be either of %s, %s or %s. But got %s",
