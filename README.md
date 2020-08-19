@@ -18,10 +18,6 @@ If you want to understand required specifications over the custom APIs, read [Dy
 
 `sts-annotator` add annotations to any pods managed by Statefulset at the time of CREATE or UPDATE. It looks like below.
 
-**A Statefulset POD (api-somethings-v1-0) is successfully annotated**  
-
-<img src="docs/annotations.png" width="400">
-
 **A Statefulset POD (api-somethings-v1-0) is successfully annotated**
 
 ```yaml
@@ -66,8 +62,8 @@ You can see the Environment variables correctly loaded when ssh into the pod.
 ```sh
 # POD: api-somethings-v1-sts-0, Statefulset Replicas: 3
 $ env | grep POD
-POD_REPLICAS=0
-POD_INDEX=3
+POD_REPLICAS=2
+POD_INDEX=0
 ```
 
 # How to deploy
@@ -83,21 +79,21 @@ It is also okay to generate new certificates by following [here](https://kuberne
 
 Here is some tips to get Kubernetes Certificate Authority just in case if you don't know how to get the certificate authority.
 
-1. run kubectl command  
-  There is a chance to get Certificate Authority by the command below. However, you might not be able to get it in case that you use kubernetes service managed by cloud provider such as GKE,
+1. get through kubectl command  
+   There is a chance to get Certificate Authority by the command below. However, you might not be able to get it. (At least, I couldn't get CA for GKE and OpenShift clusters)
 
-    ```sh
-    kubectl config view --raw --minify --flatten -o jsonpath='{.clusters[].cluster.certificate-authority-data}'
-    ```
+   ```sh
+   kubectl config view --raw --minify --flatten -o jsonpath='{.clusters[].cluster.certificate-authority-data}'
+   ```
 
 2. retrieve from pod  
-  Pick up any pod you prefer and run the command below. You can copy the Kubernetes Master API Certificate Authority from POD.
+   Pick up any pod you prefer and run the command below. You can copy the Kubernetes Master API Certificate Authority from POD.
 
-    ```sh
-    POD_NAME="<your/pod/name>"
-    NAMESPACE="<your/namespace>"
-    kubectl exec -n $NAMESPACE $POD_NAME -- tar cf - "/run/secrets/kubernetes.io/serviceaccount" | tar xf -
-    ```
+   ```sh
+   POD_NAME="<your/pod/name>"
+   NAMESPACE="<your/namespace>"
+   kubectl exec -n $NAMESPACE $POD_NAME -- tar cf - "/run/secrets/kubernetes.io/serviceaccount" | tar xf -
+   ```
 
 ## Configurations
 
