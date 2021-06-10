@@ -1,0 +1,32 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ .Values.name }}
+  namespace: {{ .Values.namespace }}
+data:
+  config.yaml: |-
+    server:
+      mode: release
+      log:
+        level: info
+      port: 8443
+      tls:
+        cert: /run/secrets/sts-annotator/server.crt
+        key: /run/secrets/sts-annotator/server.key
+
+    k8s:
+      url: https://kubernetes.default.svc
+      token: /run/secrets/kubernetes.io/serviceaccount/token
+      tls:
+        caCert: /run/secrets/kubernetes.io/serviceaccount/ca.crt
+
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: sts-annotator
+  namespace: <REPLACE HERE BY YOUR NAMESPACE>
+type: Opaque
+data:
+  server.crt: <REPLACE HERE BY YOUR BASE64 ENCODED CERT>
+  server.key: <REPLACE HERE BY YOUR BASE64 ENCODED PRIVATE KEY>

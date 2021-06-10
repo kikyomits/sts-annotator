@@ -4,7 +4,27 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"github.com/rs/zerolog/log"
+	"io/ioutil"
+	"os"
 )
+
+func getEnv(key, defaultValue string) string {
+	value, err := os.LookupEnv(key)
+	if !err {
+		return defaultValue
+	}
+	return value
+}
+
+func readFile(filePath string) []byte {
+	f, ioErr := ioutil.ReadFile(filePath)
+	if ioErr != nil {
+		log.Fatal().
+			Err(ioErr).
+			Msgf("Failed to read a file. Expected path: %s.", filePath)
+	}
+	return f
+}
 
 func createAllowResponse(uid string) (response AdmissionResponse) {
 	response = AdmissionResponse{

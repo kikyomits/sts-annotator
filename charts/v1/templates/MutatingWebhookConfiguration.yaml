@@ -1,0 +1,23 @@
+apiVersion: admissionregistration.k8s.io/v1beta1
+kind: MutatingWebhookConfiguration
+metadata:
+  name: sts-annotator
+webhooks:
+  - name: sts-annotator.default.svc
+    clientConfig:
+      service:
+        name: sts-annotator
+        path: /v1/sts/pod/annotation
+        namespace: <REPLACE HERE BY YOUR NAMESPACE>
+      caBundle: <REPLACE HERE BY YOUR BASE64 ENCODED CA>
+    rules:
+      - operations:
+          - CREATE
+          - UPDATE
+        apiGroups:
+          - ""
+        apiVersions:
+          - "*"
+        resources:
+          - pods
+    failurePolicy: Ignore

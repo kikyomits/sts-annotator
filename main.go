@@ -10,39 +10,35 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
-var CONFIG = initConfig()
-
-func init() {
-
-	CONFIG := initConfig()
+func setupLogger(config *Config) {
 	var logLevel string
-	if CONFIG.Server.Mode == "debug" {
+	if config.Server.Mode == zerolog.DebugLevel.String() {
 		log.Debug().Msg("Start with debug mode")
 		zerolog.SetGlobalLevel(zerolog.DebugLevel)
-		logLevel = "debug"
 	} else {
 		gin.SetMode(gin.ReleaseMode)
-		logLevel = strings.ToLower(CONFIG.Server.Log.Level)
+		logLevel = strings.ToLower(config.Server.Log.Level)
 
-		if logLevel == "debug" {
+		if logLevel == zerolog.DebugLevel.String() {
 			zerolog.SetGlobalLevel(zerolog.DebugLevel)
-		} else if logLevel == "info" {
+		} else if logLevel == zerolog.InfoLevel.String() {
 			zerolog.SetGlobalLevel(zerolog.InfoLevel)
-		} else if logLevel == "warn" {
+		} else if logLevel == zerolog.WarnLevel.String() {
 			zerolog.SetGlobalLevel(zerolog.WarnLevel)
-		} else if logLevel == "error" {
+		} else if logLevel == zerolog.ErrorLevel.String() {
 			zerolog.SetGlobalLevel(zerolog.ErrorLevel)
 		} else {
 			zerolog.SetGlobalLevel(zerolog.InfoLevel)
-			logLevel = "info"
-			log.Warn().Msgf("Received invalid log level to Server.Log.Level: '%v'. Set 'INFO' to log level.", logLevel)
+			log.Warn().Msgf("Received invalid log level to Server.Log.Level: '%v'. Use default log level %s", logLevel, zerolog.InfoLevel.String())
+			logLevel = zerolog.InfoLevel.String()
 		}
 	}
 	log.Info().Msgf("Log Level: %s", logLevel)
 	zerolog.TimeFieldFormat = "2006-01-02 15:04:05"
 }
 
-func setupRouter() (router *gin.Engine) {
+func setupRouter(config *Config) (router *gin.Engine) {
+
 	c := newConstant()
 
 	router = gin.New()
@@ -53,16 +49,25 @@ func setupRouter() (router *gin.Engine) {
 		SkipPath: []string{c.V1 + c.Healthz},
 	}))
 
+	ctrl := newController(config)
+
 	v1 := router.Group(c.V1)
 	v1.GET(c.Healthz, health)
-	v1.POST(c.Annotator, annotateStsPod)
+	v1.POST(c.Annotator, ctrl.annotateStsPod)
 	return
 }
 
 func main() {
-	router := setupRouter()
-	router.RunTLS(
-		fmt.Sprintf(":%v", CONFIG.Server.Port),
-		CONFIG.Server.Tls.Cert,
-		CONFIG.Server.Tls.Key)
+	config := initConfig()
+	setupLogger(config)
+
+	router := setupRouter(config)
+	err := router.RunTLS(
+		fmt.Sprintf(":%v", config.Server.Port),
+		config.Server.Tls.Cert,
+		config.Server.Tls.Key)
+
+	if err != nil {
+		log.Fatal().Err(err)
+	}
 }

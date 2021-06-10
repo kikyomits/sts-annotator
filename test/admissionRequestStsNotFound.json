@@ -26,23 +26,23 @@
     },
     "object": {
       "metadata": {
-        "name": "api-somethings-v1-0",
+        "name": "NOT_FOUND-0",
         "annotations": {
           "someKey": "someValue"
         },
-        "generateName": "api-somethings-v1-",
+        "generateName": "NOT_FOUND-",
         "namespace": "default",
         "creationTimestamp": null,
         "labels": {
-          "app": "api-somethings-v1",
-          "controller-revision-hash": "api-somethings-v1-74ffbdbcb5",
-          "statefulset.kubernetes.io/pod-name": "api-somethings-v1-0"
+          "app": "NOT_FOUND",
+          "controller-revision-hash": "NOT_FOUND-74ffbdbcb5",
+          "statefulset.kubernetes.io/pod-name": "NOT_FOUND-0"
         },
         "ownerReferences": [
           {
             "apiVersion": "apps/v1",
             "kind": "StatefulSet",
-            "name": "RANDOM-NAME",
+            "name": "NOT_FOUND",
             "uid": "87230832-6ffb-11ea-920a-0eb3c854d70e",
             "controller": true,
             "blockOwnerDeletion": true
@@ -60,8 +60,8 @@
         ],
         "containers": [
           {
-            "name": "api-somethings-v1",
-            "image": "docker.io/mkikyotani/api-somethings-v1:latest",
+            "name": "NOT_FOUND",
+            "image": "docker.io/mkikyotani/NOT_FOUND:latest",
             "ports": [
               {
                 "name": "api",
@@ -110,16 +110,10 @@
         "imagePullSecrets": [
           {
             "name": "default-dockercfg-hrv6q"
-          },
-          {
-            "name": "ecr-secret"
-          },
-          {
-            "name": "ecr-sub-secret"
           }
         ],
-        "hostname": "api-somethings-v1-0",
-        "subdomain": "api-somethings-v1",
+        "hostname": "NOT_FOUND-0",
+        "subdomain": "NOT_FOUND",
         "schedulerName": "default-scheduler",
         "priority": 0
       },

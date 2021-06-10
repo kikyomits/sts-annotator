@@ -16,7 +16,15 @@ func health(c *gin.Context) {
 	c.JSON(http.StatusOK, response)
 }
 
-func annotateStsPod(c *gin.Context) {
+type Controller struct {
+	svc K8sService
+}
+
+func newController(config *Config) Controller {
+	return Controller{svc: newK8sService(config)}
+}
+
+func (ctrl Controller) annotateStsPod(c *gin.Context) {
 	// bind a request body to struct
 	var payload AdmissionRequest
 	err := c.BindJSON(&payload)
@@ -39,6 +47,9 @@ func annotateStsPod(c *gin.Context) {
 	logMetadata := fmt.Sprintf(
 		"uid: %s namespace: %s pod: %s", uid, namespace, podName)
 
+	log.Debug().
+		Msgf("Received Pod Creation Event %s", logMetadata)
+
 	// if this POD Create request is not for Statefulset, just allow
 	stsOwnerRef := filterSts(obj.Metadata.OwnerReferences)
 	if stsOwnerRef == nil {
@@ -51,12 +62,11 @@ func annotateStsPod(c *gin.Context) {
 	log.Info().Msgf("Add annotation to Statefulset Pod. %s", logMetadata)
 	podNameSplit := strings.Split(podName, "-")
 	podIndex := podNameSplit[len(podNameSplit)-1]
-	sts := getSts(namespace, stsOwnerRef.Name)
-
-	// TODO: more precise error information woold be required.
+	sts := ctrl.svc.getSts(namespace, stsOwnerRef.Name)
+	
 	if sts == nil {
 		log.Error().
-			Msgf("Statefulset %s not found. %s", stsOwnerRef.Name, logMetadata)
+			Msgf("Statefulset '%s' not found. %s", stsOwnerRef.Name, logMetadata)
 		c.AbortWithStatusJSON(http.StatusInternalServerError, createAllowResponse(uid))
 		return
 	}
@@ -75,7 +85,7 @@ func annotateStsPod(c *gin.Context) {
 		patches = append(patches, createPatch(constant.PodReplicasPath, podReplicas))
 		patches = append(patches, createPatch(constant.PodIndexPath, podIndex))
 	}
-	
+
 	c.AbortWithStatusJSON(http.StatusOK, createPatchResponse(uid, patches))
 	return
 }

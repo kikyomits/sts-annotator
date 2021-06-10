@@ -1,5 +1,6 @@
 # IDE
 .idea
+.run
 
 # Macbook
 .DS_Store
@@ -7,3 +8,5 @@
 # build
 build/go_build_github_com_mk811_sts_annotator
 build/sts-annotator*
+
+

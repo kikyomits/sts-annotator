@@ -6,39 +6,33 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/rs/zerolog/log"
-	"io/ioutil"
 	"net/http"
 )
 
-var CLIENT = &http.Client{}
-var TOKEN string
+type K8sService struct {
+	baseUrl string
+	token   string
+	client  http.Client
+}
 
-func init() {
-	// Load token
-	token, tErr := ioutil.ReadFile(CONFIG.K8s.Token)
-	if tErr != nil {
-		log.Error().
-			Err(tErr).
-			Msgf("Cannot open a token file: %s", CONFIG.K8s.Token)
-	}
-	TOKEN = string(token)
+func newK8sService(config *Config) K8sService {
+	token := string(readFile(config.K8s.Token))
 
 	// Load ca cert file
-	caCert, cErr := ioutil.ReadFile(CONFIG.K8s.Tls.CaCert)
-	if cErr != nil {
-		log.Fatal().
-			Err(cErr).
-			Msgf("Cannot open a CA cert file: %s", CONFIG.K8s.Tls.CaCert)
-	}
+	caCert := readFile(config.K8s.Tls.CaCert)
 	caCertPool := x509.NewCertPool()
 	caCertPool.AppendCertsFromPEM(caCert)
-	CLIENT = &http.Client{
+
+	// Create http client
+	httpClient := http.Client{
 		Transport: &http.Transport{
 			TLSClientConfig: &tls.Config{
 				RootCAs: caCertPool,
 			},
 		},
 	}
+
+	return K8sService{baseUrl: config.K8s.URL, token: token, client: httpClient}
 }
 
 func filterSts(references []OwnerReference) *OwnerReference {
@@ -50,16 +44,16 @@ func filterSts(references []OwnerReference) *OwnerReference {
 	return nil
 }
 
-func getSts(namespace string, name string) *Statefulset {
-
+func (k8s K8sService) getSts(namespace string, name string) *Statefulset {
 	// get api path
 	url := fmt.Sprintf(
-		"%s/apis/apps/v1/namespaces/%s/statefulsets/%s", CONFIG.K8s.URL, namespace, name)
+		"%s/apis/apps/v1/namespaces/%s/statefulsets/%s", k8s.baseUrl, namespace, name)
 	req, _ := http.NewRequest("GET", url, nil)
 
 	// add authorization header
-	req.Header.Add("Authorization", `Bearer `+TOKEN)
-	resp, connectionErr := CLIENT.Do(req)
+	authorization := fmt.Sprintf("Bearer %s", k8s.token)
+	req.Header.Add("Authorization", authorization)
+	resp, connectionErr := k8s.client.Do(req)
 
 	if connectionErr != nil {
 		log.Error().

@@ -1,0 +1,15 @@
+# Configuration file for local debug purpose
+server:
+  mode: debug
+  log:
+    level: debug
+  port: 8443
+  tls:
+    cert: "Dummy" # Overwritten to Mock API Endpoint during test
+    key: "Dummy"  # Overwritten to Mock API Endpoint during test
+
+k8s:
+  url: "Dummy"   # Overwritten to Mock API Endpoint during test
+  token: "Dummy" # Overwritten to Mock API Endpoint during test
+  tls:
+    caCert: "Dummy" # Overwritten to Mock API Endpoint during test

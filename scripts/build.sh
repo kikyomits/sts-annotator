@@ -1,11 +1,12 @@
 #!/usr/bin/env bash
+set -e
 
 # TODO: update way to build / deploy, use modern CICD
 
 SCRIPT_DIR=$(dirname $0)
 ROOT_DIR="$SCRIPT_DIR/.."
 
-VERSION="2"
+VERSION="2.1"
 
 # Test go
 echo "Start go test"

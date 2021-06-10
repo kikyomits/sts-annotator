@@ -1,26 +1,20 @@
 package main
 
 import (
-	"io/ioutil"
-	"log"
-
+	"github.com/rs/zerolog/log"
 	"gopkg.in/yaml.v2"
 )
 
 func initConfig() (config *Config) {
 	// Read config file
-	path := "config.yaml"
-	yamlFile, ioErr := ioutil.ReadFile(path)
-	if ioErr != nil {
-		log.Printf("Failed to read a config file. Expected path: %s. Error: %v", path, ioErr)
-		return nil
-	}
+	constant := newConstant()
+	configFilePath := getEnv(constant.EnvKeyConfigPath, "config.yaml")
+	yamlFile := readFile(configFilePath)
 
 	// Load config file
 	unmarshalErr := yaml.Unmarshal(yamlFile, &config)
 	if unmarshalErr != nil {
-		log.Fatalf("Unmarshal: %v", unmarshalErr)
-		return nil
+		log.Fatal().Err(unmarshalErr).Msgf("Failed to unmarshal config yaml file.")
 	}
 	return
 }
