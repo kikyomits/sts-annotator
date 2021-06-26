@@ -1,0 +1,80 @@
+name: sts-annotator
+
+config:
+  server:
+    mode: release
+    log:
+      level: debug
+    port: 8443
+    tls:
+      cert: /run/secrets/sts-annotator/server.crt
+      key: /run/secrets/sts-annotator/server.key
+  k8s:
+    url: https://kubernetes.default.svc
+    token: /run/secrets/kubernetes.io/serviceaccount/token
+    tls:
+      caCert: /run/secrets/kubernetes.io/serviceaccount/ca.crt
+
+tls:
+  # BASE64 Encoded Certificate
+  cert:
+  # BASE64 Encoded Private Key for the Certificate
+  key:
+  # BASE64 Encoded CA Certificate
+  caCert:
+
+app:
+  replicas: 1
+
+  labels: { }
+
+  image: "docker.io/mkikyotani/sts-annotator"
+
+  tag: 1.0.0
+
+  env:
+    - name: STS_ANNOTATOR_CONFIG_PATH
+      value: /sts-annotator/config.yaml
+
+  imagePullPolicy: IfNotPresent
+
+  resources:
+    requests:
+      cpu: 20m
+      memory: 64Mi
+    limits:
+      cpu: 50m
+      memory: 128Mi
+
+  affinity: { }
+
+  livenessProbe:
+    httpGet:
+      scheme: "HTTPS"
+      path: /v1/healthz
+      port: 8443
+    initialDelaySeconds: 3
+    periodSeconds: 3
+    timeoutSeconds: 3
+    successThreshold: 1
+    failureThreshold: 3
+
+  readinessProbe:
+    httpGet:
+      scheme: "HTTPS"
+      path: /v1/healthz
+      port: 8443
+    initialDelaySeconds: 3
+    periodSeconds: 3
+    timeoutSeconds: 3
+    successThreshold: 1
+    failureThreshold: 3
+
+  volumes: { }
+  volumeMoutns: { }
+
+mutationWebhook:
+  # v1 or v1beta
+  apiVersion: v1
+  failurePolicy: Ignore
+  sideEffects: None

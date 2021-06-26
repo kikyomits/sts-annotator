@@ -1,0 +1,36 @@
+{{ if eq .Values.mutationWebhook.apiVersion "v1" }}
+apiVersion: admissionregistration.k8s.io/v1
+  {{ else }}
+apiVersion: admissionregistration.k8s.io/v1beta1
+  {{ end }}
+kind: MutatingWebhookConfiguration
+metadata:
+  name: sts-annotator
+  {{ with .Values.app.labels }}
+  labels: {{ toYaml . | nindent 4 }}
+  {{ end }}
+  annotations:
+    helm.sh/hook: post-install
+webhooks:
+  - name: {{ .Chart.Name }}.{{ .Release.Namespace}}.svc
+    clientConfig:
+      service:
+        name: {{ .Chart.Name }}
+        path: /v1/sts/pod/annotation
+        namespace: {{ .Release.Namespace}}
+      caBundle: {{ required "Missing '.Values.tls.caCert'. A valid base64 encoded ca bundle entry is required." .Values.tls.caCert }}
+    rules:
+      - operations:
+          - CREATE
+          - UPDATE
+        apiGroups:
+          - ""
+        apiVersions:
+          - "*"
+        resources:
+          - pods
+    {{ if eq .Values.mutationWebhook.apiVersion "v1" }}
+    sideEffects: {{ .Values.mutationWebhook.sideEffects }}
+    admissionReviewVersions: [ "v1", "v1beta1" ]
+    {{ end }}
+    failurePolicy: {{ .Values.mutationWebhook.failurePolicy }}

@@ -1,0 +1,75 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Chart.Name }}
+  labels:
+    {{ with .Values.app.labels }}
+    {{ toYaml . | nindent 4 }}
+    {{ end }}
+    app.kubernetes.io/name: {{ .Chart.Name }}
+    app.kubernetes.io/version: {{ .Chart.Version }}
+    app.kubernetes.io/app-version: {{ .Chart.AppVersion }}
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      {{ with .Values.app.labels }}
+      {{ toYaml . | nindent 6 }}
+      {{ end }}
+      app.kubernetes.io/name: {{ .Chart.Name }}
+      app.kubernetes.io/version: {{ .Chart.Version }}
+      app.kubernetes.io/app-version: {{ .Chart.AppVersion }}
+  strategy:
+    type: RollingUpdate
+  template:
+    metadata:
+      labels:
+        {{ with .Values.app.labels }}
+        {{ toYaml . | nindent 8 }}
+        {{ end }}
+        app.kubernetes.io/name: {{ .Chart.Name }}
+        app.kubernetes.io/version: {{ .Chart.Version }}
+        app.kubernetes.io/app-version: {{ .Chart.AppVersion }}
+    spec:
+      {{ with .Values.app.affinity }}
+      affinity: {{ toYaml . | nindent 8 }}
+      {{ end }}
+      containers:
+        - name: {{ .Chart.Name }}
+          image: {{ .Values.app.image }}:{{ .Values.app.tag }}
+          imagePullPolicy: {{ .Values.app.imagePullPolicy }}
+          {{ with .Values.app.env }}
+          env: {{ toYaml . | nindent 12 }}
+          {{ end }}
+          volumeMounts:
+            {{ with .Values.app.volumeMoutns }}
+            {{ toYaml . | nindent 12 }}
+            {{ end }}
+            - name: tls
+              mountPath: /run/secrets/sts-annotator
+            - name: app-config
+              mountPath: /sts-annotator/config.yaml
+              subPath: config.yaml
+          {{ with .Values.app.resources }}
+          resources: {{ toYaml . | nindent 12 }}
+          {{ end }}
+          {{ with .Values.app.livenessProbe }}
+          livenessProbe: {{ toYaml . | nindent 12 }}
+          {{ end }}
+          {{ with .Values.app.readinessProbe }}
+          readinessProbe: {{ toYaml . | nindent 12 }}
+          {{ end }}
+          ports:
+            - name: https
+              containerPort: {{ .Values.config.server.port }}
+              protocol: TCP
+      serviceAccountName: sts-annotator
+      dnsPolicy: ClusterFirst
+      restartPolicy: Always
+      volumes:
+        - name: tls
+          secret:
+            secretName: {{ .Chart.Name }}
+        - name: app-config
+          configMap:
+            name: {{ .Chart.Name }}

@@ -1,0 +1,13 @@
+apiVersion: v1
+entries:
+  sts-annotator:
+  - apiVersion: v2
+    appVersion: 1.0.0
+    created: "2021-06-27T00:20:12.942519+10:00"
+    description: sts-annotator
+    digest: 1bd4741a32876bbc176eb65dc9470559c1ca11abaae343ae0159a948f3acd790
+    name: sts-annotator
+    urls:
+    - https://github.com/mk811/sts-annotator/master/chart/sts-annotator/sts-annotator-1.0.0.tgz
+    version: 1.0.0
+generated: "2021-06-27T00:20:12.941714+10:00"

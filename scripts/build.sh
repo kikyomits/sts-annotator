@@ -6,7 +6,7 @@ set -e
 SCRIPT_DIR=$(dirname $0)
 ROOT_DIR="$SCRIPT_DIR/.."
 
-VERSION="2.1"
+VERSION="test"
 
 # Test go
 echo "Start go test"

@@ -2,7 +2,6 @@ apiVersion: apps/v1
 kind: StatefulSet
 metadata:
   name: "api-somethings-v1"
-  namespace: default
   annotations:
     test: "TRUE"
 spec:
@@ -20,7 +19,7 @@ spec:
     spec:
       containers:
         - name: "api-somethings-v1"
-          image: "docker.io/mkikyotani/api-test:1.0.0"
+          image: "docker.io/mkikyotani/api-something-v1:0.6.0"
           imagePullPolicy: Always
           ports:
             - name: api
@@ -37,6 +36,6 @@ spec:
           lifecycle:
             postStart:
               exec:
-                command: ["/bin/sh", "-c", "export INDEX=${HOSTNAME##*-}"]
+                command: [ "/bin/sh", "-c", "export INDEX=${HOSTNAME##*-}" ]
       dnsPolicy: ClusterFirst
       restartPolicy: Always
