@@ -73,8 +73,14 @@ app:
   volumes: { }
   volumeMoutns: { }
 
+# See k8s docs for details
+# https://kubernetes.io/docs/reference/access-authn-authz/extensible-admission-controllers/
 mutationWebhook:
   # v1 or v1beta
   apiVersion: v1
+  # failurePolicy defines how unrecognized errors and timeout errors from the admission webhook are handled. Allowed values are Ignore or Fail.
   failurePolicy: Ignore
+  # The .webhooks[].sideEffects field should be set to None if a webhook doesn't have any side effect.
   sideEffects: None
+  # The scope field specifies if only cluster-scoped resources ("Cluster") or namespace-scoped resources ("Namespaced") will match this rule. "∗" means that there are no scope restrictions.
+  scope: "Cluster"

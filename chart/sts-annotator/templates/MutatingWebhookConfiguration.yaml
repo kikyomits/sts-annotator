@@ -29,6 +29,7 @@ webhooks:
           - "*"
         resources:
           - pods
+        scope: {{ .Values.mutationWebhook.scope | quote }}
     {{ if eq .Values.mutationWebhook.apiVersion "v1" }}
     sideEffects: {{ .Values.mutationWebhook.sideEffects }}
     admissionReviewVersions: [ "v1", "v1beta1" ]

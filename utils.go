@@ -62,3 +62,12 @@ func createPatchResponse(uid string, patches []Patch) (response AdmissionRespons
 
 	return
 }
+
+func filterSts(references []OwnerReference) *OwnerReference {
+	for i := range references {
+		if references[i].Kind == "StatefulSet" {
+			return &references[i]
+		}
+	}
+	return nil
+}

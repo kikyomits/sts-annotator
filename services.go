@@ -35,15 +35,6 @@ func newK8sService(config *Config) K8sService {
 	return K8sService{baseUrl: config.K8s.URL, token: token, client: httpClient}
 }
 
-func filterSts(references []OwnerReference) *OwnerReference {
-	for i := range references {
-		if references[i].Kind == "StatefulSet" {
-			return &references[i]
-		}
-	}
-	return nil
-}
-
 func (k8s K8sService) getSts(namespace string, name string) *Statefulset {
 	// get api path
 	url := fmt.Sprintf(
