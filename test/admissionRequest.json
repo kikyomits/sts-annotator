@@ -107,12 +107,6 @@
         "imagePullSecrets": [
           {
             "name": "default-dockercfg-hrv6q"
-          },
-          {
-            "name": "ecr-secret"
-          },
-          {
-            "name": "ecr-sub-secret"
           }
         ],
         "hostname": "api-somethings-v1-0",
