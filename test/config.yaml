@@ -1,15 +1,14 @@
 # Configuration file for local debug purpose
 server:
-  mode: debug
+  mode: release
   log:
     level: debug
   port: 8443
   tls:
-    cert: "Dummy" # Overwritten to Mock API Endpoint during test
-    key: "Dummy"  # Overwritten to Mock API Endpoint during test
-
+    cert: test/test.crt
+    key: test/test.key
 k8s:
-  url: "Dummy"   # Overwritten to Mock API Endpoint during test
-  token: "Dummy" # Overwritten to Mock API Endpoint during test
+  url: https://kubernetes.default.svc
+  token: test/token
   tls:
-    caCert: "Dummy" # Overwritten to Mock API Endpoint during test
+    caCert: test/ca.crt

@@ -7,4 +7,4 @@ app:
   tag: test
 
 mutationWebhook:
-  failurePolicy: Ignore
+  failurePolicy: Fail

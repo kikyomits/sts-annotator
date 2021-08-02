@@ -83,4 +83,4 @@ mutationWebhook:
   # The .webhooks[].sideEffects field should be set to None if a webhook doesn't have any side effect.
   sideEffects: None
   # The scope field specifies if only cluster-scoped resources ("Cluster") or namespace-scoped resources ("Namespaced") will match this rule. "∗" means that there are no scope restrictions.
-  scope: "Cluster"
+  scope: "Namespaced"
