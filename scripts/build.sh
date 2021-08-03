@@ -7,7 +7,7 @@ if [ $# -eq 0 ]
   then
     echo "------------------------------------------------------------------------------------"
     echo " Usage:"
-    echo " . ./build.sh $VERSION "
+    echo " ./build.sh VERSION "
     echo " Please specify version to build container image "
     echo "------------------------------------------------------------------------------------"
     exit
