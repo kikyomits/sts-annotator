@@ -1,0 +1,100 @@
+name: sts-annotator
+
+# sts-annotator application configuration
+config:
+  server:
+    mode: release  # if you set 'debug', the api will run with 'debug' mode.
+    log:
+      level: debug # log level, either of 'error' , 'info' or 'debug',
+    port: 8443     # port where the `sts-annotator` listens to
+    tls:
+      cert: /run/secrets/sts-annotator/server.crt  # path to the cert file for `sts-annotator.<namespace>.svc.cluster`
+      key: /run/secrets/sts-annotator/server.key   # path to the private key for `sts-annotator.<namespace>.svc.cluster`
+  k8s:
+    url: https://kubernetes.default.svc # combination of url and port where your master api listens to
+    token: /run/secrets/kubernetes.io/serviceaccount/token # path to the k8s token file, used to call master api
+    tls:
+      caCert: /run/secrets/kubernetes.io/serviceaccount/ca.crt # path to the ca file, used to call master api
+
+# TLS cert, key, ca cert used for sts-annotator. Cert and key are used within sts-annotator server and ca cert is used by k8s MutationWebhook to trust the certificate.
+tls:
+  # BASE64 Encoded Certificate
+  cert:
+  # BASE64 Encoded Private Key for the Certificate
+  key:
+  # BASE64 Encoded CA Certificate
+  caCert:
+
+# sts-annotator deployment configurations
+app:
+  # number of replicas of sts-annotator
+  replicas: 1
+
+  # optional labels for sts-annotator deployment and pod
+  labels: { }
+
+  # sts-annotator image
+  image: "docker.io/mkikyotani/sts-annotator"
+
+  # sts-annotator image version
+  tag: 1.0.0
+
+  # default set of environment variables
+  env:
+    - name: STS_ANNOTATOR_CONFIG_PATH
+      value: /sts-annotator/config.yaml
+
+  # k8s imagePullPolicy for sts-annotator deployment
+  imagePullPolicy: IfNotPresent
+
+  # k8s resources for sts-annotator deployment
+  resources:
+    requests:
+      cpu: 20m
+      memory: 64Mi
+    limits:
+      cpu: 50m
+      memory: 128Mi
+
+  # k8s affinity configuration for sts-annotator deployment
+  affinity: { }
+
+  # k8s livenessProbe configuration for sts-annotator deployment
+  livenessProbe:
+    httpGet:
+      scheme: "HTTPS"
+      path: /v1/healthz
+      port: 8443
+    initialDelaySeconds: 3
+    periodSeconds: 3
+    timeoutSeconds: 3
+    successThreshold: 1
+    failureThreshold: 3
+
+  # k8s readinessProbe configuration for sts-annotator deployment
+  readinessProbe:
+    httpGet:
+      scheme: "HTTPS"
+      path: /v1/healthz
+      port: 8443
+    initialDelaySeconds: 3
+    periodSeconds: 3
+    timeoutSeconds: 3
+    successThreshold: 1
+    failureThreshold: 3
+
+  # k8s volume and volumeMounts configuration for sts-annotator deployment
+  volumes: { }
+  volumeMoutns: { }
+
+# See k8s docs for details
+# https://kubernetes.io/docs/reference/access-authn-authz/extensible-admission-controllers/
+mutationWebhook:
+  # v1 or v1beta
+  apiVersion: v1
+  # failurePolicy defines how unrecognized errors and timeout errors from the admission webhook are handled. Allowed values are Ignore or Fail.
+  failurePolicy: Ignore
+  # The .webhooks[].sideEffects field should be set to None if a webhook doesn't have any side effect.
+  sideEffects: None
+  # The scope field specifies if only cluster-scoped resources ("Cluster") or namespace-scoped resources ("Namespaced") will match this rule. "∗" means that there are no scope restrictions.
+  scope: "Namespaced"

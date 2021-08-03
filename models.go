@@ -104,6 +104,8 @@ type Constant struct {
 	AnnotationsPath string
 	PodReplicasPath string
 	PodIndexPath    string
+	// Environment Variables
+	EnvKeyConfigPath string
 }
 
 func newConstant() (c Constant) {
@@ -115,5 +117,6 @@ func newConstant() (c Constant) {
 	c.AnnotationsPath = "/metadata/annotations"
 	c.PodIndexPath = c.AnnotationsPath + "/sts-annotator~1pod-index"
 	c.PodReplicasPath = c.AnnotationsPath + "/sts-annotator~1pod-replicas"
+	c.EnvKeyConfigPath = "STS_ANNOTATOR_CONFIG_PATH"
 	return
 }

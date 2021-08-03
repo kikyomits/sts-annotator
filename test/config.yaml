@@ -1,0 +1,14 @@
+# Configuration file for local debug purpose
+server:
+  mode: release
+  log:
+    level: debug
+  port: 8443
+  tls:
+    cert: test/test.crt
+    key: test/test.key
+k8s:
+  url: https://kubernetes.default.svc
+  token: test/token
+  tls:
+    caCert: test/ca.crt

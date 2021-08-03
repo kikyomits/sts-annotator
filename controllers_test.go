@@ -5,24 +5,36 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
+	"github.com/gin-gonic/gin"
 	"github.com/go-playground/assert/v2"
-	"io"
 	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
-	"os"
 	"strings"
 	"testing"
 )
 
-var router = setupRouter()
 var c = newConstant()
 var url = c.V1 + c.Annotator
 var method = "POST"
 
+func setupTestRouter() (router *gin.Engine) {
+	// RUn Gin server for unit test
+
+	k8sRespBody, _ := json.Marshal(readExpectedSts())
+	ts := buildTS(&k8sRespBody)
+	config := initTestConfig(ts.URL)
+	router = setupRouter(config)
+	return
+}
+
 func TestHealth(t *testing.T) {
+	// Verify health check endpoint
+	// Expected: return 200.
+
 	w := httptest.NewRecorder()
 	req, _ := http.NewRequest("GET", c.V1+c.Healthz, nil)
+	router := setupTestRouter()
 	router.ServeHTTP(w, req)
 
 	body, _ := ioutil.ReadAll(w.Body)
@@ -35,8 +47,13 @@ func TestHealth(t *testing.T) {
 }
 
 func TestAnnotateStsPod(t *testing.T) {
+	// Most standard case. Receive Statefulset Pod creation event.
+	// This case expect the created pod doesn't have any annotations.
+	// Expected: Return 200 with annotations.
+
 	f := readFile("test/admissionRequest.json")
 	w := sendRequest(f)
+
 	actual := unmarshalActual(w)
 	expect := unmarshalExpected(f)
 	assertCommon(t, w.Code, expect, actual)
@@ -44,6 +61,10 @@ func TestAnnotateStsPod(t *testing.T) {
 }
 
 func TestAnnotateStsPodWithAnnotations(t *testing.T) {
+	// Most standard case. Receive Statefulset Pod creation event.
+	// This case expect the created pod has some annotations.
+	// Expected: Return 200 with annotations.
+
 	f := readFile("test/admissionRequestWithAnnotations.json")
 	w := sendRequest(f)
 	actual := unmarshalActual(w)
@@ -53,6 +74,8 @@ func TestAnnotateStsPodWithAnnotations(t *testing.T) {
 }
 
 func TestAnnotateNoStsPod(t *testing.T) {
+	// Pod Creation Event (Other than Statefulset)
+	// Expected Behavior: Skip adding annotation as the pod doesn't belong to Statefulset. Just return 200.
 	f := readFile("test/admissionRequestNoSts.json")
 	w := sendRequest(f)
 	actual := unmarshalActual(w)
@@ -63,6 +86,9 @@ func TestAnnotateNoStsPod(t *testing.T) {
 }
 
 func TestAnnotateStsPodInvalidReq(t *testing.T) {
+	// Pod Creation Event with invalid json.
+	// Edge test case, just in case k8s's Admission Json object got changed.
+	// Expected: Return 400.
 	f := readFile("test/admissionRequestInvalid.json")
 	w := sendRequest(f)
 	actual := unmarshalActual(w)
@@ -70,6 +96,10 @@ func TestAnnotateStsPodInvalidReq(t *testing.T) {
 }
 
 func TestAnnotateStsNotFound(t *testing.T) {
+	// Pod Creation Event but the Statefulset has been gone somehow.
+	// Edge test case.
+	// Expected: Return 500
+
 	f := readFile("test/admissionRequestStsNotFound.json")
 	w := sendRequest(f)
 	actual := unmarshalActual(w)
@@ -113,7 +143,6 @@ func assertPatches(
 		} else if patch.Path == c.PodIndexPath {
 			assert.Equal(t, podIndex, patch.Value)
 		} else if patch.Path == c.PodReplicasPath {
-			// TODO: use K8s mock api server response to verify the pod replicas
 			assert.Equal(t, podReplicas, patch.Value)
 		} else {
 			t.Error(
@@ -126,6 +155,7 @@ func assertPatches(
 func sendRequest(body []byte) (w *httptest.ResponseRecorder) {
 	w = httptest.NewRecorder()
 	req, _ := http.NewRequest(method, url, bytes.NewBuffer(body))
+	router := setupTestRouter()
 	router.ServeHTTP(w, req)
 	return
 }
@@ -148,13 +178,4 @@ func unmarshalPatches(base64EncodedPatch string) (patches []Patch) {
 	decodedPatch, _ := base64.StdEncoding.DecodeString(base64EncodedPatch)
 	json.Unmarshal(decodedPatch, &patches)
 	return
-}
-
-func readFile(path string) []byte {
-	f, _ := os.Open(path)
-	defer f.Close()
-	var buf bytes.Buffer
-	tee := io.TeeReader(f, &buf)
-	b, _ := ioutil.ReadAll(tee)
-	return b
 }
