@@ -1,20 +1,22 @@
 name: sts-annotator
 
+# sts-annotator application configuration
 config:
   server:
-    mode: release
+    mode: release  # if you set 'debug', the api will run with 'debug' mode.
     log:
-      level: debug
-    port: 8443
+      level: debug # log level, either of 'error' , 'info' or 'debug',
+    port: 8443     # port where the `sts-annotator` listens to
     tls:
-      cert: /run/secrets/sts-annotator/server.crt
-      key: /run/secrets/sts-annotator/server.key
+      cert: /run/secrets/sts-annotator/server.crt  # path to the cert file for `sts-annotator.<namespace>.svc.cluster`
+      key: /run/secrets/sts-annotator/server.key   # path to the private key for `sts-annotator.<namespace>.svc.cluster`
   k8s:
-    url: https://kubernetes.default.svc
-    token: /run/secrets/kubernetes.io/serviceaccount/token
+    url: https://kubernetes.default.svc # combination of url and port where your master api listens to
+    token: /run/secrets/kubernetes.io/serviceaccount/token # path to the k8s token file, used to call master api
     tls:
-      caCert: /run/secrets/kubernetes.io/serviceaccount/ca.crt
+      caCert: /run/secrets/kubernetes.io/serviceaccount/ca.crt # path to the ca file, used to call master api
 
+# TLS cert, key, ca cert used for sts-annotator. Cert and key are used within sts-annotator server and ca cert is used by k8s MutationWebhook to trust the certificate.
 tls:
   # BASE64 Encoded Certificate
   cert:
@@ -23,21 +25,29 @@ tls:
   # BASE64 Encoded CA Certificate
   caCert:
 
+# sts-annotator deployment configurations
 app:
+  # number of replicas of sts-annotator
   replicas: 1
 
+  # optional labels for sts-annotator deployment and pod
   labels: { }
 
+  # sts-annotator image
   image: "docker.io/mkikyotani/sts-annotator"
 
+  # sts-annotator image version
   tag: 1.0.0
 
+  # default set of environment variables
   env:
     - name: STS_ANNOTATOR_CONFIG_PATH
       value: /sts-annotator/config.yaml
 
+  # k8s imagePullPolicy for sts-annotator deployment
   imagePullPolicy: IfNotPresent
 
+  # k8s resources for sts-annotator deployment
   resources:
     requests:
       cpu: 20m
@@ -46,8 +56,10 @@ app:
       cpu: 50m
       memory: 128Mi
 
+  # k8s affinity configuration for sts-annotator deployment
   affinity: { }
 
+  # k8s livenessProbe configuration for sts-annotator deployment
   livenessProbe:
     httpGet:
       scheme: "HTTPS"
@@ -59,6 +71,7 @@ app:
     successThreshold: 1
     failureThreshold: 3
 
+  # k8s readinessProbe configuration for sts-annotator deployment
   readinessProbe:
     httpGet:
       scheme: "HTTPS"
@@ -70,6 +83,7 @@ app:
     successThreshold: 1
     failureThreshold: 3
 
+  # k8s volume and volumeMounts configuration for sts-annotator deployment
   volumes: { }
   volumeMoutns: { }
 

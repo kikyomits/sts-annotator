@@ -1,18 +1,29 @@
-# sts-annotator
+# sts-annotator <!-- omit in toc -->
 
-- [sts-annotator](#sts-annotator)
 - [How it works](#how-it-works)
-- [How to deploy](#how-to-deploy)
+  - [Limitations](#limitations)
+- [Installation](#installation)
   - [Prerequisites](#prerequisites)
-  - [Configurations](#configurations)
-  - [Application Configuration (config.yaml)](#application-configuration-configyaml)
-  - [MutatingWebhookConfiguration and TLS certs](#mutatingwebhookconfiguration-and-tls-certs)
-  - [Deploy](#deploy)
+  - [Quick Install](#quick-install)
+  - [Custom Install](#custom-install)
+- [Configurations](#configurations)
+  - [sts-annotator configurations](#sts-annotator-configurations)
+  - [sts-annotator deployment configurations](#sts-annotator-deployment-configurations)
+  - [MutatingWebhookConfiguration Configurations](#mutatingwebhookconfiguration-configurations)
+  - [TLS Certificate Configurations](#tls-certificate-configurations)
+- [Tips](#tips)
+  - [Generating TLS certificate](#generating-tls-certificate)
 
-sts-annotator is Kubernetes admission controllers, which is API providing custom admission review in your cluster. The goal of this controller is to allow pods to get `POD_INDEX` and `POD_REPLICAS` from Environment Variables. `sts-annotator` achieve it by adding annotations to any pods managed by Statefulset at the time of `CREATE` and `UPDATE`. The `POD_INDEX` is the pod's ordinal index suffixed to the Statefulset Pod Name.
+sts-annotator is Kubernetes admission controllers, which is an API providing custom admission review in your cluster. The
+goal of this controller is to allow pods to get `POD_INDEX` and `POD_REPLICAS` from Environment
+Variables. `sts-annotator` achieve it by adding annotations to any pods managed by Statefulset at the time of `CREATE`
+and `UPDATE`. The `POD_INDEX` is the pod's ordinal index suffixed to the Statefulset Pod Name.
 
-If you want to understand basics, read [A Guide to Kubernetes Admission Controllers](https://kubernetes.io/blog/2019/03/21/a-guide-to-kubernetes-admission-controllers/).
-If you want to understand required specifications over the custom APIs, read [Dynamic Admission Control](https://kubernetes.io/docs/reference/access-authn-authz/extensible-admission-controllers/).
+If you want to understand basics,
+read [A Guide to Kubernetes Admission Controllers](https://kubernetes.io/blog/2019/03/21/a-guide-to-kubernetes-admission-controllers/)
+. If you want to understand required specifications over the custom APIs,
+read [Dynamic Admission Control](https://kubernetes.io/docs/reference/access-authn-authz/extensible-admission-controllers/)
+.
 
 # How it works
 
@@ -66,42 +77,75 @@ POD_REPLICAS=2
 POD_INDEX=0
 ```
 
-# How to deploy
+## Limitations
+
+`sts-annotator` can add annotations to pods when they are initially created and never update it. So that it won't update the `metadata.annotations['sts-annotator/pod-replicas']` of existing pods when you change the number of replicas in Statefulset unless you recreate all pods. If this is critical for your application, please raise an issue. We are thinking to add an option of auto remediation, which will re-create all pods under the updated Statefulset.
+
+# Installation
 
 ## Prerequisites
 
 - k8s cluster is running
-- you have a set of server certificate, private key and certificate authority signed for your kubernetes master api
 
-**If you don't know how to get the Certificate Authority**
+## Quick Install
 
-It is also okay to generate new certificates by following [here](https://kubernetes.io/docs/concepts/cluster-administration/certificates/). But recommend you to discuss the certificate life cycle management with your system admin for production use.
+We used to use a set of static yaml files to deploy `sts-annotator` but Helm is supported now and recommend you to use
+Helm to install `sts-annotator` now.
 
-Here is some tips to get Kubernetes Certificate Authority just in case if you don't know how to get the certificate authority.
+If you want to quickly test `sts-annotator`, please follow the steps below. The quick install uses the pre-generated certificate and requires sts-annotator deployed in `sts` namespace.
 
-1. get through kubectl command  
-   There is a chance to get Certificate Authority by the command below. However, you might not be able to get it. (At least, I couldn't get CA for GKE and OpenShift clusters)
+```sh
+# clone source code and move into the directory
+$ git clone https://github.com/mk811/sts-annotator.git
+$ cd sts-annotator
 
-   ```sh
-   kubectl config view --raw --minify --flatten -o jsonpath='{.clusters[].cluster.certificate-authority-data}'
-   ```
+# the namespace name must be sts. Other namespace name is not supported by the TLS certificate
+$ kubectl create ns sts
+$ helm repo add mk811 https://raw.githubusercontent.com/mk811/sts-annotator/master/chart
+$ helm install test mk811/sts-annotator  -f test/values.yaml -n sts
+```
 
-2. retrieve from pod  
-   Pick up any pod you prefer and run the command below. You can copy the Kubernetes Master API Certificate Authority from POD.
+## Custom Install
 
-   ```sh
-   POD_NAME="<your/pod/name>"
-   NAMESPACE="<your/namespace>"
-   kubectl exec -n $NAMESPACE $POD_NAME -- tar cf - "/run/secrets/kubernetes.io/serviceaccount" | tar xf -
-   ```
+You can install `sts-annotator` with your own configurations.
 
-## Configurations
+To deploy `sts-annotator` to your namespaces, you need to generate a server certificate for sts-annotator by yourself. This is simply because `MutatingWebhookConfiguration` sends TLS encrypted request to `sts-annotator`. Please see [Generating TLS certificate](#generating-tls-certificate) to find the way to generate TLS certificate.
 
-All configurations required are stored in [deployments/configs.yaml](deployments/configs.yaml). There are 3 types of configurations for `sts-annotator` - application, MutatingWebhookConfiguration, and tls certs.
+Once you get cert, key, certificate authority, please create a `values.yaml` file in your local machine and set base64 encoded cert, key and CA in the file. Also, you can add more configurations as you like. Please see the [Configurations](#configurations) section for available parameters.
 
-## Application Configuration (config.yaml)
+```yaml
+# values.yaml
+tls:
+  cert: "LS0tLS1..."
+  key: "LS0tL..."
+  caCert: "LS0tL..."
+```
 
-You can update [config.yaml](./deployments/configs.yaml) to configure the application. The `config.yaml` must be located in application root directory.
+Now, let's move onto the installation.
+
+```sh
+# Create a namespace for the sts-annotator.
+$ kubectl create namespace <your-namespace>
+
+# In this step, helm uses the values.yaml created step above.
+$ helm repo add mk811 https://raw.githubusercontent.com/mk811/sts-annotator/master/chart
+$ helm install <name e.g. `test`> mk811/sts-annotator -f values.yaml -n <your-namespace>
+
+NAME: test
+LAST DEPLOYED: Mon Aug  2 17:49:58 2021
+NAMESPACE: default
+STATUS: deployed
+REVISION: 1
+TEST SUITE: None
+```
+
+# Configurations
+
+Default values for all configurations are defined in [values.yaml](chart/sts-annotator/values.yaml).
+
+## sts-annotator configurations
+
+`config` is a section for configuring sts-annotator behavior.
 
 | field            | description                                                         |
 | ---------------- | ------------------------------------------------------------------- |
@@ -114,56 +158,161 @@ You can update [config.yaml](./deployments/configs.yaml) to configure the applic
 | k8s.token        | path to the k8s token file, used to call master api                 |
 | k8s.tls.caCert   | path to the ca file, used to call master api                        |
 
-## MutatingWebhookConfiguration and TLS certs
+## sts-annotator deployment configurations
 
-Please replace the `<REPLACE HERE BY ...>` items. Note, there are corelation between the two configurations. `sts-annotator` must run with https as Kubernetes Admission Controller requires. Please set the **Base64 Encoded Certificate Authority** (1), which signs server certificate (2). Kubernetes send webhook, expecting https server running with tls certs signed by the Certificate Authority. Set **Base64 Encoded Server Certificate** (2) and **Base64 Encoded Private Key** (3).
+`app` is a section for configuring sts-annotator deployment configurations
 
-```yaml
----
-apiVersion: admissionregistration.k8s.io/v1beta1
-kind: MutatingWebhookConfiguration
-metadata:
-  name: sts-annotator
-webhooks:
-  - name: sts-annotator.default.svc
-    clientConfig:
-      service:
-        name: sts-annotator
-        path: /v1/sts/pod/annotation
-        namespace: <REPLACE HERE BY YOUR NAMESPACE>
-      caBundle: <REPLACE HERE BY YOUR BASE64 ENCODED CA>  ........... (1)
-    rules:
-      - operations:
-          - CREATE
-          - UPDATE
-        apiGroups:
-          - ""
-        apiVersions:
-          - "*"
-        resources:
-          - pods
-    failurePolicy: Ignore
+| field           | description                                                   |
+| --------------- | ------------------------------------------------------------- |
+| replicas        | number of replicas of sts-annotator                           |
+| labels          | optional labels for sts-annotator deployment and pod          |
+| image           | sts-annotator image                                           |
+| tag             | sts-annotator image version                                   |
+| env             | default set of environment variables                          |
+| imagePullPolicy | k8s imagePullPolicy for sts-annotator deployment              |
+| resources       | k8s resources for sts-annotator deployment                    |
+| affinity        | k8s affinity configuration for sts-annotator deployment       |
+| livenessProbe   | k8s livenessProbe configuration for sts-annotator deployment  |
+| readinessProbe  | k8s readinessProbe configuration for sts-annotator deployment |
+| volumes         | k8s volume configuration for sts-annotator deployment         |
+| volumeMounts    | k8s volumeMounts configuration for sts-annotator deployment   |
 
----
-apiVersion: v1
-kind: Secret
-metadata:
-  name: sts-annotator
-  namespace: <REPLACE HERE BY YOUR NAMESPACE>
-type: Opaque
-data:
-  server.crt: <REPLACE HERE BY YOUR BASE64 ENCODED CERT>         ... (2)
-  server.key: <REPLACE HERE BY YOUR BASE64 ENCODED PRIVATE KEY>  ... (3)
-```
+## MutatingWebhookConfiguration Configurations
 
-## Deploy
+`mutationWebhook` is a section for configuring `MutatingWebhookConfiguration` resource.
 
-Make sure you replace all the `<REPLACE HERE BY ...>` items in the yaml files.
+| field         | description                                                                                                                                     |
+| ------------- | ----------------------------------------------------------------------------------------------------------------------------------------------- |
+| apiVersion    | `apiVersion` of `MutatingWebhookConfiguration`. `v1` or `v1beta`. `v1` is recommended as it is latest version.                                  |
+| failurePolicy | failurePolicy defines how unrecognized errors and timeout errors from the admission webhook are handled. Allowed values are `Ignore` or `Fail`. |
+| sideEffects   | The .webhooks[].sideEffects field should be set to None if a webhook doesn't have any side effect.                                              |
 
-```sh
-kubectl create -f deployments/serviceaccount.yaml
-kubectl create -f deployments/configs.yaml
-kubectl create -f deployments/deploy.yaml
-```
+## TLS Certificate Configurations
 
-The next time you create Statefulset Pod, you will see pods annotated. Note, if you decrease the `spec.replicas` of the Statefulset while it's running, the annotation of existing pods won't be updated. This is because Environment Variables are loaded at the Pod initialization process, not read the annotations dynamically. If you want to change the pod replicas and keep the annotations corresponding to the number, you need to recreate the existing pods as well.
+`tls` is a section for configuring TLS certificate used within `sts-annotator` server. Default values for the fields under `TLS` section aren't defined as it should be different on your environment.
+
+| field  | description                                    |
+| ------ | ---------------------------------------------- |
+| cert   | BASE64 Encoded Certificate                     |
+| key    | BASE64 Encoded Private Key for the Certificate |
+| caCert | BASE64 Encoded CA Certificate                  |
+
+# Tips
+
+## Generating TLS certificate
+
+If you have k8s admin permission (or appropriate permissions), you can generate valid server certificate for `sts-annotator` in k8s cluster. Please refer to [k8s official docs](https://kubernetes.io/docs/tasks/tls/managing-tls-in-a-cluster/) for details. The following steps are the sample commands used to generate certificate [test/test.crt](test/test.crt) and [test.key](test/test.key).
+
+Note, we verified the following commands on MacOS only. `base64` or other MacOS native commands may be vary if you are using Windows or Linux systems.
+
+1. Create a Certificate Signing Request
+
+   Please update `hosts` for your namespace where the sts-annotator is deployed. The sample below expects `sts-annotator` is deployed in `sts` namespace. If you deploy it to `default` namespace, the `hosts` should be: `["sts-annotator.default.svc.cluster.local", "sts-annotator.default.svc", "sts-annotator"]`.
+
+   ```sh
+   cat <<EOF | cfssl genkey - | cfssljson -bare server
+   {
+     "hosts": [
+       "sts-annotator.sts.svc.cluster.local",
+       "sts-annotator.sts.svc",
+       "sts-annotator"
+     ],
+     "CN": "system:node:sts-annotator.sts.pod.cluster.local",
+     "key": {
+       "algo": "ecdsa",
+       "size": 256
+     },
+     "names": [
+       {
+         "O": "system:nodes"
+       }
+     ]
+   }
+   EOF
+   ```
+
+2. Create a Certificate Signing Request object to send to the Kubernetes API
+
+   ```sh
+   cat <<EOF | kubectl apply -f -
+   apiVersion: certificates.k8s.io/v1
+   kind: CertificateSigningRequest
+   metadata:
+     name: sts-annotator
+   spec:
+     request: $(cat server.csr | base64 | tr -d '\n')
+     signerName: kubernetes.io/kubelet-serving
+     usages:
+     - digital signature
+     - key encipherment
+     - server auth
+   EOF
+   ```
+
+   This command generates two files; it generates `server.csr` containing the PEM encoded pkcs#10 certification request, and `server-key.pem` containing the PEM encoded key to the certificate that is still to be created.
+
+   Let's base64 encode the key as we will use it in installation.
+
+   ```sh
+   $ cat server-key.pem | base64 > server-key.base64.pem
+   ```
+
+
+   Also, now you should be able to see the certificate signing request.
+
+   ```sh
+   kubectl get csr sts-annotator
+   ```
+
+3. Approve CSR
+
+   If you have admin permission, you can approve the CSR by command below.
+
+   ```sh
+   kubectl certificate approve sts-annotator
+   ```
+
+4. Get server certificate (base64 encoded)
+
+   ```sh
+   kubectl get csr sts-annotator -o jsonpath='{.status.certificate}' > server.base64.crt
+   ```
+
+   Now, you can find the `server-key.pem` in your local and you can download certificate.
+
+5. Get Certificate Authority signed the Certificate. (If you don't know how to get the Certificate Authority)
+
+   Here are some tips to get Kubernetes Certificate Authority.
+
+   1. get through kubectl command  
+      There is a chance to get Certificate Authority by the command below. However, you might not be able to get it. (At
+      least, I couldn't get CA for some environments)
+
+   ```sh
+   kubectl config view --raw --minify --flatten -o jsonpath='{.clusters[].cluster.certificate-authority-data}' > ca.base64.crt
+   ```
+
+   2. retrieve from pod  
+      Pick up any pod you prefer and run the command below. You can copy the Kubernetes Master API Certificate Authority
+      from POD.
+
+   ```sh
+   POD_NAME="<your/pod/name>"
+   NAMESPACE="<your/namespace>"
+   kubectl exec sts-annotator-869bb7f4b-9cdc6  -- cat "/run/secrets/kubernetes.io/serviceaccount/ca.crt" | base64 > ca.base64.crt
+   ```
+
+   It is also okay to generate new certificates by
+   following [here](https://kubernetes.io/docs/concepts/cluster-administration/certificates/) or you can go with the steps above. In either case, please discuss the certificate lifecycle management with your system admin for production use.
+
+6. Done!
+   Finally, you have server certificate, key and CA in your local.
+
+   ```sh
+   $ ls | grep base64
+   ca.base64.crt
+   server-key.base64.pem
+   server.base64.crt
+   ```
+
+   
